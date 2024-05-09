@@ -2,6 +2,7 @@ package com.davi.paisesinfo.service;
 
 import com.davi.paisesinfo.client.CountryInfoClient;
 import com.davi.paisesinfo.dto.CountryInfo;
+import com.davi.paisesinfo.exception.ResourceNotFoundException;
 import com.davi.paisesinfo.mapper.LinguagemNativaMapper;
 import com.davi.paisesinfo.mapper.MoedaMapper;
 import com.davi.paisesinfo.mapper.PaisesInfoMapper;
@@ -9,6 +10,7 @@ import com.davi.paisesinfo.model.LinguagemNativa;
 import com.davi.paisesinfo.model.Moeda;
 import com.davi.paisesinfo.model.PaisesInfo;
 import com.davi.paisesinfo.repository.PaisesInfoRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -35,7 +37,12 @@ public class PaisesInfoService {
     }
 
     private PaisesInfo getPaisesInfoFromCountryInfo(String code, String localityLanguage) {
-        CountryInfo countryInfo = countryInfoClient.getCountryInfo(key, code, localityLanguage);
+        CountryInfo countryInfo;
+        try {
+            countryInfo = countryInfoClient.getCountryInfo(key, code, localityLanguage);
+        } catch (FeignException.NotFound ex) {
+            throw new ResourceNotFoundException(ex.getMessage());
+        }
         PaisesInfo paisesInfo = paisesInfoMapper.toPaisesInfo(countryInfo);
         Moeda moeda = moedaMapper.toMoeda(countryInfo.getCurrency());
         paisesInfo.setMoeda(moeda);
